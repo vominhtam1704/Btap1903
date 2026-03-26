@@ -28,30 +28,34 @@ jobs:
         with:
           context: .
           push: true
+          # Đảm bảo repo này đã tồn tại trên Docker Hub của bạn
           tags: concasauxinhdep1704/vominhtam:latest
 
       - name: Triển khai lên DevOps Classroom
         run: |
-          # Tham số khớp với hình ảnh: Slot 6, Port 80
+          # 1. Khai báo thông tin (Khớp với Slot 6 trong ảnh)
           REPO="concasauxinhdep1704/vominhtam"
+          SLOT=6
+          PORT=80
           
-          RESPONSE=$(curl -sS -w "\n%{http_code}" -X GET "${{ secrets.DEPLOY_URL }}?repo=$REPO&tag=latest&slot=6&container_port=80")
+          # 2. Gửi request Webhook (Dùng POST như mẫu của trường)
+          # Lưu ý: head -n -1 dùng để lấy Body, tail -n 1 lấy HTTP Code
+          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "${{ secrets.DEPLOY_URL }}?repo=$REPO&tag=latest&slot=$SLOT&container_port=$PORT")
           
           BODY=$(echo "$RESPONSE" | head -n -1)
           CODE=$(echo "$RESPONSE" | tail -n 1)
           
-          echo "Webhook HTTP Response Code: $CODE"
+          echo "Webhook HTTP Status: $CODE"
           
-          if [ "$CODE" -eq 200 ] || [ "$CODE" -eq 201 ]; then
-            echo "✅ Deploy thành công!"
-            echo "::group::Phản hồi từ Server"
-            echo "$BODY"
+          if [ "$CODE" -lt 200 ] || [ "$CODE" -ge 300 ]; then
+            echo "❌ Deploy thất bại. Kiểm tra log chi tiết bên dưới:"
+            echo "::group::Chi tiết lỗi từ Server"
+            echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
             echo "::endgroup::"
-          else
-            echo "❌ Deploy thất bại (Lỗi $CODE)!"
-            echo "Phản hồi: $BODY"
             exit 1
+          else
+            echo "✅ Deploy thành công!"
+            echo "::group::Phản hồi thành công"
+            echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+            echo "::endgroup::"
           fi
-
-      - name: Finish Status
-        run: echo "Workflow hoàn tất! Truy cập web tại cổng 21110"
