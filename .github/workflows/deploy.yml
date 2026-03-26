@@ -23,18 +23,41 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push
+      - name: Build and push Docker Image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          # Đảm bảo tag này khớp với "Docker Hub URL/Repo" bạn nhập trên web
-          tags: ${{ secrets.DOCKER_USERNAME }}/vominhtam:latest
+          # Đã sửa theo đúng Namespace trong ảnh Docker Hub của bạn
+          tags: concasauxinhdep1704/vominhtam:latest
 
-      - name: Trigger Webhook Deploy
+      - name: Triển khai lên DevOps Classroom (Webhook)
         run: |
-          curl -X GET "${{ secrets.DEPLOY_URL }}"
-        # Bước này sẽ gọi đến link webhook bạn đã lưu trong secret để server bắt đầu deploy.
+          # Cấu hình tham số
+          REPO="concasauxinhdep1704/vominhtam"
+          CONTAINER_PORT=80
+          
+          # Gửi request và lấy cả Body lẫn HTTP Code
+          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "${{ secrets.DEPLOY_URL }}?repo=$REPO&tag=latest&slot=1&container_port=$CONTAINER_PORT")
+          
+          # Tách nội dung Body và Code
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          CODE=$(echo "$RESPONSE" | tail -n 1)
+          
+          echo "Webhook HTTP Response Code: $CODE"
+          
+          if [ "$CODE" -lt 200 ] || [ "$CODE" -ge 300 ]; then
+            echo "❌ Deploy thất bại!"
+            echo "::group::Chi tiết lỗi (JSON)"
+            echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+            echo "::endgroup::"
+            exit 1
+          else
+            echo "✅ Deploy thành công!"
+            echo "::group::Phản hồi từ Server"
+            echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+            echo "::endgroup::"
+          fi
 
-      - name: Status Update
-        run: echo "Docker image pushed and deploy triggered successfully!"
+      - name: Finish Status
+        run: echo "Workflow hoàn tất!"
