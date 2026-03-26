@@ -28,18 +28,17 @@ jobs:
         with:
           context: .
           push: true
-          # Đảm bảo repo này đã tồn tại trên Docker Hub của bạn
           tags: concasauxinhdep1704/vominhtam:latest
 
       - name: Triển khai lên DevOps Classroom
         run: |
-          # 1. Khai báo thông tin (Khớp với Slot 6 trong ảnh)
+          # 1. Khai báo thông tin (Khớp với Slot 6 và Dockerfile)
           REPO="concasauxinhdep1704/vominhtam"
           SLOT=6
-          PORT=80
+          # SỬA TẠI ĐÂY: Đổi từ 80 thành 8080 để khớp với EXPOSE trong Dockerfile
+          PORT=8080
           
-          # 2. Gửi request Webhook (Dùng POST như mẫu của trường)
-          # Lưu ý: head -n -1 dùng để lấy Body, tail -n 1 lấy HTTP Code
+          # 2. Gửi request Webhook
           RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "${{ secrets.DEPLOY_URL }}?repo=$REPO&tag=latest&slot=$SLOT&container_port=$PORT")
           
           BODY=$(echo "$RESPONSE" | head -n -1)
