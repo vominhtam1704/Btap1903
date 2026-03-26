@@ -28,7 +28,13 @@ jobs:
         with:
           context: .
           push: true
+          # Đảm bảo tag này khớp với "Docker Hub URL/Repo" bạn nhập trên web
           tags: ${{ secrets.DOCKER_USERNAME }}/vominhtam:latest
 
-      - name: Image pushed successfully
-        run: echo "Docker image pushed to Docker Hub successfully!"
+      - name: Trigger Webhook Deploy
+        run: |
+          curl -X GET "${{ secrets.DEPLOY_URL }}"
+        # Bước này sẽ gọi đến link webhook bạn đã lưu trong secret để server bắt đầu deploy.
+
+      - name: Status Update
+        run: echo "Docker image pushed and deploy triggered successfully!"
