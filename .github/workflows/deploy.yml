@@ -28,36 +28,30 @@ jobs:
         with:
           context: .
           push: true
-          # Đã sửa theo đúng Namespace trong ảnh Docker Hub của bạn
           tags: concasauxinhdep1704/vominhtam:latest
 
-      - name: Triển khai lên DevOps Classroom (Webhook)
+      - name: Triển khai lên DevOps Classroom
         run: |
-          # Cấu hình tham số
+          # Tham số khớp với hình ảnh: Slot 6, Port 80
           REPO="concasauxinhdep1704/vominhtam"
-          CONTAINER_PORT=80
           
-          # Gửi request và lấy cả Body lẫn HTTP Code
-          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "${{ secrets.DEPLOY_URL }}?repo=$REPO&tag=latest&slot=1&container_port=$CONTAINER_PORT")
+          RESPONSE=$(curl -sS -w "\n%{http_code}" -X GET "${{ secrets.DEPLOY_URL }}?repo=$REPO&tag=latest&slot=6&container_port=80")
           
-          # Tách nội dung Body và Code
           BODY=$(echo "$RESPONSE" | head -n -1)
           CODE=$(echo "$RESPONSE" | tail -n 1)
           
           echo "Webhook HTTP Response Code: $CODE"
           
-          if [ "$CODE" -lt 200 ] || [ "$CODE" -ge 300 ]; then
-            echo "❌ Deploy thất bại!"
-            echo "::group::Chi tiết lỗi (JSON)"
-            echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
-            echo "::endgroup::"
-            exit 1
-          else
+          if [ "$CODE" -eq 200 ] || [ "$CODE" -eq 201 ]; then
             echo "✅ Deploy thành công!"
             echo "::group::Phản hồi từ Server"
-            echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+            echo "$BODY"
             echo "::endgroup::"
+          else
+            echo "❌ Deploy thất bại (Lỗi $CODE)!"
+            echo "Phản hồi: $BODY"
+            exit 1
           fi
 
       - name: Finish Status
-        run: echo "Workflow hoàn tất!"
+        run: echo "Workflow hoàn tất! Truy cập web tại cổng 21110"
